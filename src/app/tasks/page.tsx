@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../store/store";
 import { toggleCompleted } from "../../store/tasksSlice";
+import { CONST_TEXT } from "@/utils/const-text";
 
 export default function TasksPage() {
   const tasks = useSelector((state: RootState) => state.tasks);
@@ -14,8 +15,8 @@ export default function TasksPage() {
     tab === "all"
       ? tasks
       : tab === "completed"
-      ? tasks.filter((t) => t.completed)
-      : tasks.filter((t) => !t.completed);
+        ? tasks.filter((t) => t.completed)
+        : tasks.filter((t) => !t.completed);
 
   return (
     <main
@@ -29,7 +30,7 @@ export default function TasksPage() {
       }}
     >
       <h2 style={{ fontSize: "2rem", color: "#6366f1", marginBottom: "1rem" }}>
-        タスク一覧
+        {CONST_TEXT.TASK_LIST}
       </h2>
       <Link href="/tasks/create">
         <button
@@ -44,7 +45,7 @@ export default function TasksPage() {
             marginBottom: "2rem",
           }}
         >
-          タスク作成
+          {CONST_TEXT.CREATE_TASK}
         </button>
       </Link>
       <div
@@ -73,7 +74,7 @@ export default function TasksPage() {
             transition: "all 0.2s",
           }}
         >
-          すべて
+          {CONST_TEXT.ALL}
         </button>
         <button
           onClick={() => setTab("incomplete")}
@@ -91,7 +92,7 @@ export default function TasksPage() {
             transition: "all 0.2s",
           }}
         >
-          未完
+          {CONST_TEXT.INCOMPLETE}
         </button>
         <button
           onClick={() => setTab("completed")}
@@ -109,7 +110,7 @@ export default function TasksPage() {
             transition: "all 0.2s",
           }}
         >
-          完了
+          {CONST_TEXT.COMPLETED}
         </button>
       </div>
       <div style={{ width: "100%", maxWidth: "500px" }}>
@@ -124,7 +125,7 @@ export default function TasksPage() {
               boxShadow: "0 2px 8px rgba(99,102,241,0.10)",
             }}
           >
-            タスクがありません
+            {CONST_TEXT.NO_TASKS}
           </div>
         ) : (
           filteredTasks.map((task) => (
@@ -176,7 +177,7 @@ export default function TasksPage() {
                         fill="none"
                       />
                     </svg>
-                    完了
+                    {CONST_TEXT.COMPLETED}
                   </>
                 ) : (
                   <>
@@ -196,7 +197,7 @@ export default function TasksPage() {
                         opacity="0.3"
                       />
                     </svg>
-                    未完
+                    {CONST_TEXT.INCOMPLETE}
                   </>
                 )}
               </span>
@@ -222,10 +223,10 @@ export default function TasksPage() {
                     marginBottom: "0.2rem",
                   }}
                 >
-                  カテゴリー: {task.category}
+                  {CONST_TEXT.CATEGORY}: {task.category}
                 </div>
                 <div style={{ fontSize: "0.95rem", color: "#374151" }}>
-                  担当者: {task.assignee}
+                  {CONST_TEXT.ASSIGNEE}: {task.assignee}
                 </div>
               </div>
               <div
@@ -247,7 +248,9 @@ export default function TasksPage() {
                     minWidth: "100px",
                   }}
                 >
-                  {task.completed ? "未完にする" : "完了にする"}
+                  {task.completed
+                    ? CONST_TEXT.MARK_AS_INCOMPLETE
+                    : CONST_TEXT.MARK_AS_COMPLETE}
                 </button>
               </div>
             </div>

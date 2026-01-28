@@ -5,12 +5,13 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../../store/store";
 import { toggleCompleted, updateTask } from "../../../store/tasksSlice";
 import { useState } from "react";
+import { CONST_TEXT } from "@/utils/const-text";
 
 export default function TaskDetailPage() {
   const params = useParams();
   const id = Number(params.id);
   const task = useSelector((state: RootState) =>
-    state.tasks.find((t) => t.id === id)
+    state.tasks.find((t) => t.id === id),
   );
   const dispatch = useDispatch();
 
@@ -24,8 +25,8 @@ export default function TaskDetailPage() {
   if (!task) {
     return (
       <main style={{ padding: "2rem" }}>
-        <h2>タスクが見つかりません</h2>
-        <Link href="/tasks">一覧に戻る</Link>
+        <h2>{CONST_TEXT.NO_TASKS}</h2>
+        <Link href="/tasks">{CONST_TEXT.BACK_TO_LIST}</Link>
       </main>
     );
   }
@@ -51,7 +52,7 @@ export default function TaskDetailPage() {
         category: editCategory,
         assignee: editAssignee,
         memo: editMemo,
-      })
+      }),
     );
     setIsEdit(false);
   };
@@ -68,7 +69,7 @@ export default function TaskDetailPage() {
       }}
     >
       <h2 style={{ fontSize: "2rem", color: "#6366f1", marginBottom: "1rem" }}>
-        タスク詳細
+        {CONST_TEXT.TASK_DETAIL}
       </h2>
       <div
         style={{
@@ -154,7 +155,7 @@ export default function TaskDetailPage() {
                       fill="none"
                     />
                   </svg>
-                  完了
+                  {CONST_TEXT.COMPLETED}
                 </>
               ) : (
                 <>
@@ -174,7 +175,7 @@ export default function TaskDetailPage() {
                       opacity="0.3"
                     />
                   </svg>
-                  未完
+                  {CONST_TEXT.INCOMPLETE}
                 </>
               )}
             </span>
@@ -194,7 +195,9 @@ export default function TaskDetailPage() {
                 minWidth: "110px",
               }}
             >
-              {task.completed ? "未完にする" : "完了にする"}
+              {task.completed
+                ? CONST_TEXT.MARK_AS_INCOMPLETE
+                : CONST_TEXT.MARK_AS_COMPLETE}
             </button>
           </div>
         </div>
@@ -207,7 +210,7 @@ export default function TaskDetailPage() {
                 fontSize: "1.05rem",
               }}
             >
-              カテゴリー:
+              {CONST_TEXT.CATEGORY}:
             </label>
             {isEdit ? (
               <input
@@ -238,7 +241,7 @@ export default function TaskDetailPage() {
                 fontSize: "1.05rem",
               }}
             >
-              担当者:
+              {CONST_TEXT.ASSIGNEE}:
             </label>
             {isEdit ? (
               <input
@@ -309,7 +312,7 @@ export default function TaskDetailPage() {
                   transition: "background 0.2s",
                 }}
               >
-                保存
+                {CONST_TEXT.SAVE}
               </button>
               <button
                 type="button"
@@ -327,7 +330,7 @@ export default function TaskDetailPage() {
                   transition: "background 0.2s",
                 }}
               >
-                キャンセル
+                {CONST_TEXT.CANCEL}
               </button>
             </div>
           ) : (
@@ -347,13 +350,13 @@ export default function TaskDetailPage() {
                 transition: "background 0.2s",
               }}
             >
-              編集
+              {CONST_TEXT.EDIT}
             </button>
           )}
         </form>
       </div>
       <Link href="/tasks" style={{ color: "#6366f1", fontWeight: "bold" }}>
-        一覧に戻る
+        {CONST_TEXT.BACK_TO_LIST}
       </Link>
     </main>
   );

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CONST_TEXT } from "@/utils/const-text";
 
 export default function Home() {
   return (
@@ -25,7 +26,7 @@ export default function Home() {
             marginBottom: "1rem",
           }}
         >
-          ログイン
+          {CONST_TEXT.LOGIN}
         </button>
       </Link>
       <Link href="/tasks">
@@ -40,7 +41,7 @@ export default function Home() {
             cursor: "pointer",
           }}
         >
-          タスク一覧へ
+          {CONST_TEXT.TO_TASK_LIST}
         </button>
       </Link>
     </main>

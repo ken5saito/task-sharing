@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useDispatch } from "react-redux";
 import { addTask } from "../../../store/tasksSlice";
 import { useRouter } from "next/navigation";
+import { CONST_TEXT } from "@/utils/const-text";
 
 export default function TaskCreatePage() {
   const [title, setTitle] = useState("");
@@ -22,7 +23,7 @@ export default function TaskCreatePage() {
         assignee,
         memo,
         completed: false,
-      })
+      }),
     );
     router.push("/tasks");
   };
@@ -39,7 +40,7 @@ export default function TaskCreatePage() {
       }}
     >
       <h2 style={{ fontSize: "2rem", color: "#6366f1", marginBottom: "1rem" }}>
-        タスク作成
+        {CONST_TEXT.CREATE_TASK}
       </h2>
       <form
         onSubmit={handleSubmit}
@@ -56,7 +57,7 @@ export default function TaskCreatePage() {
       >
         <input
           type="text"
-          placeholder="タイトル"
+          placeholder={CONST_TEXT.TITLE}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -69,7 +70,7 @@ export default function TaskCreatePage() {
         />
         <input
           type="text"
-          placeholder="カテゴリー"
+          placeholder={CONST_TEXT.CATEGORY}
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           required
@@ -82,7 +83,7 @@ export default function TaskCreatePage() {
         />
         <input
           type="text"
-          placeholder="担当者"
+          placeholder={CONST_TEXT.ASSIGNEE}
           value={assignee}
           onChange={(e) => setAssignee(e.target.value)}
           required
@@ -94,7 +95,7 @@ export default function TaskCreatePage() {
           }}
         />
         <textarea
-          placeholder="メモ"
+          placeholder={CONST_TEXT.MEMO}
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
           style={{
@@ -117,14 +118,14 @@ export default function TaskCreatePage() {
             cursor: "pointer",
           }}
         >
-          作成
+          {CONST_TEXT.CREATE}
         </button>
       </form>
       <Link
         href="/tasks"
         style={{ marginTop: "2rem", color: "#6366f1", fontWeight: "bold" }}
       >
-        一覧に戻る
+        {CONST_TEXT.BACK_TO_LIST}
       </Link>
     </main>
   );

@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { CONST_TEXT } from "@/utils/const-text";
 
 export default function Header() {
   return (
@@ -29,7 +30,7 @@ export default function Header() {
             userSelect: "none",
           }}
         >
-          Task Sharing
+          {CONST_TEXT.APP_NAME}
         </h1>
       </Link>
     </header>

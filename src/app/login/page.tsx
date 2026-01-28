@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { CONST_TEXT } from "@/utils/const-text";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -7,7 +8,7 @@ export default function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`ログイン: ${email}`);
+    alert(`${CONST_TEXT.LOGIN}: ${email}`);
   };
 
   return (
@@ -22,7 +23,7 @@ export default function LoginPage() {
       }}
     >
       <h2 style={{ fontSize: "2rem", color: "#6366f1", marginBottom: "1rem" }}>
-        ログイン
+        {CONST_TEXT.LOGIN}
       </h2>
       <form
         onSubmit={handleSubmit}
@@ -39,7 +40,7 @@ export default function LoginPage() {
       >
         <input
           type="email"
-          placeholder="メールアドレス"
+          placeholder={CONST_TEXT.EMAIL}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -52,7 +53,7 @@ export default function LoginPage() {
         />
         <input
           type="password"
-          placeholder="パスワード"
+          placeholder={CONST_TEXT.PASSWORD}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -75,7 +76,7 @@ export default function LoginPage() {
             cursor: "pointer",
           }}
         >
-          ログイン
+          {CONST_TEXT.LOGIN}
         </button>
       </form>
     </main>

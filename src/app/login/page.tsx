@@ -1,14 +1,34 @@
 "use client";
 import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { CONST_TEXT } from "@/utils/const-text";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`${CONST_TEXT.LOGIN}: ${email}`);
+    setError("");
+    setIsLoading(true);
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    setIsLoading(false);
+
+    if (result?.error) {
+      setError(CONST_TEXT.LOGIN_FAILED);
+    } else if (result?.ok) {
+      router.push("/tasks");
+    }
   };
 
   return (
@@ -64,20 +84,39 @@ export default function LoginPage() {
             fontSize: "1rem",
           }}
         />
+        {error && (
+          <p
+            style={{
+              color: "#ef4444",
+              fontSize: "0.875rem",
+              margin: "0",
+            }}
+          >
+            {error}
+          </p>
+        )}
         <button
           type="submit"
+          disabled={isLoading}
           style={{
             padding: "0.75rem",
-            background: "#6366f1",
+            background: isLoading ? "#999" : "#6366f1",
             color: "#fff",
             border: "none",
             borderRadius: "8px",
             fontSize: "1rem",
-            cursor: "pointer",
+            cursor: isLoading ? "not-allowed" : "pointer",
           }}
         >
-          {CONST_TEXT.LOGIN}
+          {isLoading ? CONST_TEXT.LOGIN_LOADING : CONST_TEXT.LOGIN}
         </button>
+        <p style={{ fontSize: "0.875rem", color: "#666", margin: "0" }}>
+          {CONST_TEXT.DEMO_CREDENTIALS}
+          <br />
+          {CONST_TEXT.DEMO_EMAIL}
+          <br />
+          {CONST_TEXT.DEMO_PASSWORD}
+        </p>
       </form>
     </main>
   );

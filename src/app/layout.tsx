@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "../styles/globals.css";
 import Header from "../components/Header";
 import ReduxProvider from "../components/ReduxProvider";
+import AuthProvider from "../components/AuthProvider";
 
 export const metadata: Metadata = {
   title: "Task Sharing",
@@ -16,10 +17,12 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body>
-        <ReduxProvider>
-          <Header />
-          {children}
-        </ReduxProvider>
+        <AuthProvider>
+          <ReduxProvider>
+            <Header />
+            {children}
+          </ReduxProvider>
+        </AuthProvider>
       </body>
     </html>
   );

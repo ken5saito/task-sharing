@@ -23,4 +23,10 @@ export const CONST_TEXT = {
   CREATE: "作成",
   SAVE: "保存",
   CANCEL: "キャンセル",
+  LOGIN_LOADING: "ログイン中...",
+  LOADING: "読み込み中...",
+  DEMO_CREDENTIALS: "デモ用認証情報：",
+  DEMO_EMAIL: "Email: demo@example.com",
+  DEMO_PASSWORD: "Password: password123",
+  LOGIN_FAILED: "メールアドレスまたはパスワードが間違っています",
 };

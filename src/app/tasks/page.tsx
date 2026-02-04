@@ -1,15 +1,48 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../store/store";
 import { toggleCompleted } from "../../store/tasksSlice";
 import { CONST_TEXT } from "@/utils/const-text";
 
 export default function TasksPage() {
+  const { status } = useSession();
+  const router = useRouter();
   const tasks = useSelector((state: RootState) => state.tasks);
   const dispatch = useDispatch();
   const [tab, setTab] = useState<"all" | "completed" | "incomplete">("all");
+
+  // useEffectを使用してセッション状態の変化に対応
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
+  // ローディング中
+  if (status === "loading") {
+    return (
+      <main
+        style={{
+          minHeight: "90vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          background: "linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)",
+        }}
+      >
+        <p style={{ fontSize: "1.2rem", color: "#6366f1" }}>{CONST_TEXT.LOADING}</p>
+      </main>
+    );
+  }
+
+  // 認証中ではない場合は何も表示しない
+  if (status !== "authenticated") {
+    return null;
+  }
 
   const filteredTasks =
     tab === "all"

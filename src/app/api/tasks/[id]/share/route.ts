@@ -23,7 +23,7 @@ interface FirebaseTask {
 // POST: タスクを共有
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -32,8 +32,10 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const taskId = params.id;
+    const { id } = await params;
+    const taskId = id;
     const userId = session.user.id;
+
     const body = await req.json();
     const { shareWithEmail, remove: isRemove } = body;
 
@@ -76,18 +78,18 @@ export async function POST(
       sharedWith[targetUser.id] = true;
     }
 
+    const updatedAt = Date.now();
+
     await update(taskRef, {
       sharedWith,
-      updatedAt: Date.now(),
+      updatedAt,
     });
 
-    const updatedTask = {
+    return NextResponse.json({
       ...task,
       sharedWith,
-      updatedAt: Date.now(),
-    };
-
-    return NextResponse.json(updatedTask);
+      updatedAt,
+    });
   } catch (error) {
     console.error("Error sharing task:", error);
     return NextResponse.json(

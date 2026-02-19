@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { CONST_TEXT } from "@/utils/const-text";
 
 export default function LoginPage() {
@@ -47,6 +48,7 @@ export default function LoginPage() {
       </h2>
       <form
         onSubmit={handleSubmit}
+        noValidate
         style={{
           display: "flex",
           flexDirection: "column",
@@ -63,6 +65,7 @@ export default function LoginPage() {
           placeholder={CONST_TEXT.EMAIL}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
           required
           style={{
             padding: "0.75rem",
@@ -76,6 +79,7 @@ export default function LoginPage() {
           placeholder={CONST_TEXT.PASSWORD}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
           required
           style={{
             padding: "0.75rem",
@@ -110,14 +114,21 @@ export default function LoginPage() {
         >
           {isLoading ? CONST_TEXT.LOGIN_LOADING : CONST_TEXT.LOGIN}
         </button>
-        <p style={{ fontSize: "0.875rem", color: "#666", margin: "0" }}>
-          {CONST_TEXT.DEMO_CREDENTIALS}
-          <br />
-          {CONST_TEXT.DEMO_EMAIL}
-          <br />
-          {CONST_TEXT.DEMO_PASSWORD}
-        </p>
       </form>
+      <p style={{ marginTop: "1.5rem", color: "#666" }}>
+        アカウントをお持ちですか？
+        <Link
+          href="/register"
+          style={{
+            color: "#6366f1",
+            textDecoration: "none",
+            fontWeight: "bold",
+            marginLeft: "0.5rem",
+          }}
+        >
+          {CONST_TEXT.LOGIN}
+        </Link>
+      </p>
     </main>
   );
 }

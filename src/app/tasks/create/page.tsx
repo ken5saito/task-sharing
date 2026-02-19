@@ -1,9 +1,8 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { useDispatch } from "react-redux";
-import { addTask } from "../../../store/tasksSlice";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { CONST_TEXT } from "@/utils/const-text";
 
 export default function TaskCreatePage() {
@@ -11,21 +10,51 @@ export default function TaskCreatePage() {
   const [category, setCategory] = useState("");
   const [assignee, setAssignee] = useState("");
   const [memo, setMemo] = useState("");
-  const dispatch = useDispatch();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { data: session, status } = useSession();
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 未認証時はリダイレクト
+  if (status === "unauthenticated") {
+    router.push("/login");
+    return null;
+  }
+
+  if (status === "loading") {
+    return <div>{CONST_TEXT.LOADING}</div>;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    dispatch(
-      addTask({
-        title,
-        category,
-        assignee,
-        memo,
-        completed: false,
-      }),
-    );
-    router.push("/tasks");
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          category,
+          assignee,
+          memo,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || CONST_TEXT.TASK_CREATE_FAILED);
+        return;
+      }
+
+      router.push("/tasks");
+    } catch (err) {
+      console.error("Error creating task:", err);
+      setError(CONST_TEXT.NETWORK_ERROR);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -106,19 +135,25 @@ export default function TaskCreatePage() {
             minHeight: "80px",
           }}
         />
+        {error && (
+          <p style={{ color: "#ef4444", fontSize: "0.875rem", margin: "0" }}>
+            {error}
+          </p>
+        )}
         <button
           type="submit"
+          disabled={isLoading}
           style={{
             padding: "0.75rem",
-            background: "#6366f1",
+            background: isLoading ? "#999" : "#6366f1",
             color: "#fff",
             border: "none",
             borderRadius: "8px",
             fontSize: "1rem",
-            cursor: "pointer",
+            cursor: isLoading ? "not-allowed" : "pointer",
           }}
         >
-          {CONST_TEXT.CREATE}
+          {isLoading ? CONST_TEXT.LOADING : CONST_TEXT.CREATE}
         </button>
       </form>
       <Link

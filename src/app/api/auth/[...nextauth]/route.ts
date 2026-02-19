@@ -2,6 +2,8 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { NextAuthOptions, Session, User } from "next-auth";
 import type { JWT } from "next-auth/jwt";
+import { getUserByEmail, verifyPassword } from "@/lib/firebase-auth";
+import { CONST_TEXT } from "@/utils/const-text";
 
 interface MyToken extends JWT {
   id?: string;
@@ -25,19 +27,37 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials: Credentials | undefined) {
-        // デモ用認証情報
-        if (
-          credentials?.email === "demo@example.com" &&
-          credentials?.password === "password123"
-        ) {
-          return {
-            id: "1",
-            email: credentials.email,
-            name: "Demo User",
-          };
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error(CONST_TEXT.EMAIL_PASSWORD_REQUIRED);
         }
 
-        return null;
+        try {
+          // Firebase からユーザーを検索
+          const user = await getUserByEmail(credentials.email);
+
+          if (!user) {
+            throw new Error(CONST_TEXT.USER_NOT_FOUND);
+          }
+
+          // パスワード検証
+          const isValid = await verifyPassword(
+            credentials.password,
+            user.passwordHash,
+          );
+
+          if (!isValid) {
+            throw new Error(CONST_TEXT.PASSWORD_INCORRECT);
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          };
+        } catch (error) {
+          console.error("Authorization error:", error);
+          throw error;
+        }
       },
     }),
   ],

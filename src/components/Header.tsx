@@ -39,6 +39,29 @@ export default function Header() {
 
       {session && (
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <Link href="/tasks" style={{ textDecoration: "none" }}>
+            <button
+              style={{
+                padding: "0.5rem 1rem",
+                background: "#10b981",
+                color: "#fff",
+                border: "none",
+                borderRadius: "6px",
+                fontSize: "0.9rem",
+                cursor: "pointer",
+                fontWeight: "500",
+                transition: "background 0.2s",
+              }}
+              onMouseOver={(e) => {
+                (e.target as HTMLButtonElement).style.background = "#059669";
+              }}
+              onMouseOut={(e) => {
+                (e.target as HTMLButtonElement).style.background = "#10b981";
+              }}
+            >
+              {CONST_TEXT.TASK_LIST}
+            </button>
+          </Link>
           <span style={{ color: "#fff", fontSize: "0.95rem" }}>
             {session.user?.email}
           </span>

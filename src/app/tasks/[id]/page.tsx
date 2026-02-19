@@ -1,61 +1,181 @@
 "use client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "../../../store/store";
-import { toggleCompleted, updateTask } from "../../../store/tasksSlice";
-import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
 import { CONST_TEXT } from "@/utils/const-text";
+
+interface Task {
+  id: string;
+  title: string;
+  category: string;
+  assignee: string;
+  memo: string;
+  completed: boolean;
+  ownerId: string;
+  createdBy: string;
+  sharedWith: Record<string, boolean>;
+  createdAt: number;
+  updatedAt: number;
+}
 
 export default function TaskDetailPage() {
   const params = useParams();
-  const id = Number(params.id);
-  const task = useSelector((state: RootState) =>
-    state.tasks.find((t) => t.id === id),
-  );
-  const dispatch = useDispatch();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const taskId = params.id as string;
 
-  // 編集モード管理
+  const [task, setTask] = useState<Task | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isEdit, setIsEdit] = useState(false);
-  const [editTitle, setEditTitle] = useState(task?.title ?? "");
-  const [editCategory, setEditCategory] = useState(task?.category ?? "");
-  const [editAssignee, setEditAssignee] = useState(task?.assignee ?? "");
-  const [editMemo, setEditMemo] = useState(task?.memo ?? "");
+  const [editTitle, setEditTitle] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editAssignee, setEditAssignee] = useState("");
+  const [editMemo, setEditMemo] = useState("");
+  const [error, setError] = useState("");
+  const [hasFetched, setHasFetched] = useState(false);
 
-  if (!task) {
-    return (
-      <main style={{ padding: "2rem" }}>
-        <h2>{CONST_TEXT.NO_TASKS}</h2>
-        <Link href="/tasks">{CONST_TEXT.BACK_TO_LIST}</Link>
-      </main>
-    );
-  }
+  // 未認証時はリダイレクト
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
+  // タスクを取得（初回マウント時のみ）
+  useEffect(() => {
+    if (status === "authenticated" && !hasFetched) {
+      const fetchTask = async () => {
+        try {
+          setIsLoading(true);
+          const response = await fetch("/api/tasks");
+          if (response.ok) {
+            const tasks: Task[] = await response.json();
+            const foundTask = tasks.find((t) => t.id === taskId);
+            if (foundTask) {
+              setTask(foundTask);
+              setEditTitle(foundTask.title);
+              setEditCategory(foundTask.category);
+              setEditAssignee(foundTask.assignee);
+              setEditMemo(foundTask.memo);
+              setHasFetched(true);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch task:", err);
+          setError(CONST_TEXT.TASK_FETCH_FAILED);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchTask();
+    }
+  }, [status, taskId, hasFetched]);
 
   const handleEdit = () => {
     setIsEdit(true);
-    setEditTitle(task.title);
-    setEditCategory(task.category);
-    setEditAssignee(task.assignee);
-    setEditMemo(task.memo);
   };
 
   const handleCancel = () => {
     setIsEdit(false);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    dispatch(
-      updateTask({
-        ...task,
-        title: editTitle,
-        category: editCategory,
-        assignee: editAssignee,
-        memo: editMemo,
-      }),
-    );
-    setIsEdit(false);
+    if (!task) return;
+
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...task,
+          title: editTitle,
+          category: editCategory,
+          assignee: editAssignee,
+          memo: editMemo,
+        }),
+      });
+
+      if (response.ok) {
+        const updatedTask = await response.json();
+        setTask(updatedTask);
+        // 編集フィールドも同時に更新して、次の編集のための値を保持
+        setEditTitle(updatedTask.title);
+        setEditCategory(updatedTask.category);
+        setEditAssignee(updatedTask.assignee);
+        setEditMemo(updatedTask.memo);
+        setIsEdit(false);
+      }
+    } catch (err) {
+      console.error("Failed to update task:", err);
+      setError(CONST_TEXT.TASK_UPDATE_FAILED);
+    }
   };
+
+  const handleToggleCompleted = async () => {
+    if (!task) return;
+
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...task,
+          completed: !task.completed,
+        }),
+      });
+
+      if (response.ok) {
+        const updatedTask = await response.json();
+        setTask(updatedTask);
+        // 編集フィールドも同時に更新
+        setEditTitle(updatedTask.title);
+        setEditCategory(updatedTask.category);
+        setEditAssignee(updatedTask.assignee);
+        setEditMemo(updatedTask.memo);
+      }
+    } catch (err) {
+      console.error("Failed to toggle task:", err);
+      setError(CONST_TEXT.TASK_UPDATE_FAILED);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!task || !confirm(CONST_TEXT.DELETE_CONFIRM)) return;
+
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        router.push("/tasks");
+      }
+    } catch (err) {
+      console.error("Failed to delete task:", err);
+      setError(CONST_TEXT.TASK_DELETE_FAILED);
+    }
+  };
+
+  if (status === "loading" || isLoading) {
+    return (
+      <main style={{ padding: "2rem", textAlign: "center" }}>
+        <p>{CONST_TEXT.LOADING}</p>
+      </main>
+    );
+  }
+
+  if (!task) {
+    return (
+      <main style={{ padding: "2rem" }}>
+        <h2 style={{ color: "#ef4444" }}>{CONST_TEXT.NO_TASKS}</h2>
+        <Link href="/tasks" style={{ color: "#6366f1", fontWeight: "bold" }}>
+          {CONST_TEXT.BACK_TO_LIST}
+        </Link>
+      </main>
+    );
+  }
 
   return (
     <main
@@ -71,6 +191,21 @@ export default function TaskDetailPage() {
       <h2 style={{ fontSize: "2rem", color: "#6366f1", marginBottom: "1rem" }}>
         {CONST_TEXT.TASK_DETAIL}
       </h2>
+      {error && (
+        <div
+          style={{
+            background: "#fee2e2",
+            color: "#991b1b",
+            padding: "1rem",
+            borderRadius: "6px",
+            marginBottom: "1rem",
+            maxWidth: "500px",
+            width: "100%",
+          }}
+        >
+          {error}
+        </div>
+      )}
       <div
         style={{
           background: "#fff",
@@ -180,7 +315,7 @@ export default function TaskDetailPage() {
               )}
             </span>
             <button
-              onClick={() => dispatch(toggleCompleted(task.id))}
+              onClick={handleToggleCompleted}
               style={{
                 padding: "0.45em 1em",
                 borderRadius: "8px",
@@ -201,7 +336,7 @@ export default function TaskDetailPage() {
             </button>
           </div>
         </div>
-        <form onSubmit={handleSave}>
+        <div>
           <div style={{ marginBottom: "1rem" }}>
             <label
               style={{
@@ -275,7 +410,9 @@ export default function TaskDetailPage() {
               marginBottom: "1rem",
             }}
           >
-            <span style={{ fontWeight: "bold", color: "#6366f1" }}>メモ：</span>
+            <span style={{ fontWeight: "bold", color: "#6366f1" }}>
+              {CONST_TEXT.MEMO_LABEL}
+            </span>
             {isEdit ? (
               <textarea
                 value={editMemo}
@@ -296,7 +433,10 @@ export default function TaskDetailPage() {
             )}
           </div>
           {isEdit ? (
-            <div style={{ display: "flex", gap: "1rem" }}>
+            <form
+              onSubmit={handleSave}
+              style={{ display: "flex", gap: "1rem" }}
+            >
               <button
                 type="submit"
                 style={{
@@ -332,28 +472,50 @@ export default function TaskDetailPage() {
               >
                 {CONST_TEXT.CANCEL}
               </button>
-            </div>
+            </form>
           ) : (
-            <button
-              type="button"
-              onClick={handleEdit}
-              style={{
-                padding: "0.6em 1.5em",
-                borderRadius: "8px",
-                border: "none",
-                background: "#6366f1",
-                color: "#fff",
-                fontWeight: "bold",
-                cursor: "pointer",
-                fontSize: "1rem",
-                boxShadow: "0 1px 4px rgba(99,102,241,0.10)",
-                transition: "background 0.2s",
-              }}
-            >
-              {CONST_TEXT.EDIT}
-            </button>
+            <div style={{ display: "flex", gap: "1rem" }}>
+              <button
+                type="button"
+                onClick={handleEdit}
+                style={{
+                  padding: "0.6em 1.5em",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "#6366f1",
+                  color: "#fff",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  fontSize: "1rem",
+                  boxShadow: "0 1px 4px rgba(99,102,241,0.10)",
+                  transition: "background 0.2s",
+                }}
+              >
+                {CONST_TEXT.EDIT}
+              </button>
+              {task.ownerId === session?.user?.id && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  style={{
+                    padding: "0.6em 1.5em",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "#ef4444",
+                    color: "#fff",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    fontSize: "1rem",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.10)",
+                    transition: "background 0.2s",
+                  }}
+                >
+                  {CONST_TEXT.DELETE}
+                </button>
+              )}
+            </div>
           )}
-        </form>
+        </div>
       </div>
       <Link href="/tasks" style={{ color: "#6366f1", fontWeight: "bold" }}>
         {CONST_TEXT.BACK_TO_LIST}

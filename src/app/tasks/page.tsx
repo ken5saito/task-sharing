@@ -3,17 +3,37 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "../../store/store";
-import { toggleCompleted } from "../../store/tasksSlice";
 import { CONST_TEXT } from "@/utils/const-text";
 
+interface Task {
+  id: string;
+  title: string;
+  category: string;
+  assignee: string;
+  memo: string;
+  completed: boolean;
+  ownerId: string;
+  createdBy: string;
+  sharedWith: Record<string, boolean>;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export default function TasksPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const tasks = useSelector((state: RootState) => state.tasks);
-  const dispatch = useDispatch();
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [tab, setTab] = useState<"all" | "completed" | "incomplete">("all");
+  const [isLoading, setIsLoading] = useState(true);
+  const [shareModal, setShareModal] = useState<{
+    taskId: string;
+    userId: string;
+  } | null>(null);
+  const [shareEmail, setShareEmail] = useState("");
+  const [notification, setNotification] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   // useEffectを使用してセッション状態の変化に対応
   useEffect(() => {
@@ -21,6 +41,84 @@ export default function TasksPage() {
       router.push("/login");
     }
   }, [status, router]);
+
+  // タスク一覧を Firebase から取得
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetchTasks();
+    }
+  }, [status]);
+
+  const fetchTasks = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/tasks");
+      if (response.ok) {
+        const data = await response.json();
+        setTasks(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch tasks:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleTaskCompleted = async (taskId: string, completed: boolean) => {
+    try {
+      const task = tasks.find((t) => t.id === taskId);
+      if (!task) return;
+
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...task, completed: !completed }),
+      });
+
+      if (response.ok) {
+        const updatedTask = await response.json();
+        setTasks(tasks.map((t) => (t.id === taskId ? updatedTask : t)));
+      }
+    } catch (error) {
+      console.error("Failed to update task:", error);
+    }
+  };
+
+  const shareTask = async (taskId: string) => {
+    if (!shareEmail || !session?.user?.id) return;
+
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shareWithEmail: shareEmail }),
+      });
+
+      if (response.ok) {
+        await fetchTasks();
+        setShareModal(null);
+        setShareEmail("");
+        setNotification({
+          type: "success",
+          message: CONST_TEXT.SHARE_SUCCESS,
+        });
+        // 3秒後に通知を消す
+        setTimeout(() => setNotification(null), 3000);
+      } else {
+        const errorData = await response.json();
+        setNotification({
+          type: "error",
+          message: errorData.error || CONST_TEXT.SHARE_FAILED,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to share task:", error);
+      setNotification({
+        type: "error",
+        message: CONST_TEXT.NETWORK_ERROR,
+      });
+    }
+  };
 
   // ローディング中
   if (status === "loading") {
@@ -34,7 +132,9 @@ export default function TasksPage() {
           background: "linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)",
         }}
       >
-        <p style={{ fontSize: "1.2rem", color: "#6366f1" }}>{CONST_TEXT.LOADING}</p>
+        <p style={{ fontSize: "1.2rem", color: "#6366f1" }}>
+          {CONST_TEXT.LOADING}
+        </p>
       </main>
     );
   }
@@ -62,6 +162,26 @@ export default function TasksPage() {
         alignItems: "center",
       }}
     >
+      {/* 通知UI */}
+      {notification && (
+        <div
+          style={{
+            position: "fixed",
+            top: "1rem",
+            right: "1rem",
+            padding: "1rem 1.5rem",
+            borderRadius: "8px",
+            background: notification.type === "success" ? "#10b981" : "#ef4444",
+            color: "#fff",
+            fontWeight: "500",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            zIndex: 1000,
+            animation: "slideIn 0.3s ease-out",
+          }}
+        >
+          {notification.message}
+        </div>
+      )}
       <h2 style={{ fontSize: "2rem", color: "#6366f1", marginBottom: "1rem" }}>
         {CONST_TEXT.TASK_LIST}
       </h2>
@@ -147,7 +267,20 @@ export default function TasksPage() {
         </button>
       </div>
       <div style={{ width: "100%", maxWidth: "500px" }}>
-        {filteredTasks.length === 0 ? (
+        {isLoading ? (
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "12px",
+              padding: "2rem",
+              textAlign: "center",
+              color: "#6366f1",
+              boxShadow: "0 2px 8px rgba(99,102,241,0.10)",
+            }}
+          >
+            {CONST_TEXT.LOADING}
+          </div>
+        ) : filteredTasks.length === 0 ? (
           <div
             style={{
               background: "#fff",
@@ -234,7 +367,13 @@ export default function TasksPage() {
                   </>
                 )}
               </span>
-              <div>
+              <div
+                style={{
+                  flex: 1,
+                  marginLeft: "1rem",
+                  marginRight: "1rem",
+                }}
+              >
                 <div
                   style={{
                     fontWeight: "bold",
@@ -263,33 +402,163 @@ export default function TasksPage() {
                 </div>
               </div>
               <div
-                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  flexDirection: "column",
+                }}
               >
                 <button
-                  onClick={() => dispatch(toggleCompleted(task.id))}
+                  onClick={() => toggleTaskCompleted(task.id, task.completed)}
                   style={{
-                    padding: "0.45em 1em",
+                    padding: "0.45em 0.8em",
                     borderRadius: "8px",
                     border: "none",
                     background: task.completed ? "#f59e42" : "#10b981",
                     color: "#fff",
                     fontWeight: "bold",
                     cursor: "pointer",
-                    fontSize: "0.9rem",
+                    fontSize: "0.8rem",
                     boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
                     transition: "background 0.2s",
-                    minWidth: "100px",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {task.completed
                     ? CONST_TEXT.MARK_AS_INCOMPLETE
                     : CONST_TEXT.MARK_AS_COMPLETE}
                 </button>
+                {task.ownerId === session?.user?.id && (
+                  <button
+                    onClick={() =>
+                      setShareModal({ taskId: task.id, userId: task.ownerId })
+                    }
+                    style={{
+                      padding: "0.45em 0.8em",
+                      borderRadius: "8px",
+                      border: "none",
+                      background: "#8b5cf6",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      fontSize: "0.8rem",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
+                      transition: "background 0.2s",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    共有
+                  </button>
+                )}
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* 共有モーダル */}
+      {shareModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setShareModal(null)}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "12px",
+              padding: "2rem",
+              maxWidth: "400px",
+              width: "90%",
+              boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ color: "#6366f1", marginTop: 0 }}>
+              {CONST_TEXT.SHARE_TASK}
+            </h3>
+            <p style={{ color: "#666", fontSize: "0.95rem" }}>
+              {CONST_TEXT.ENTER_USER_ID}
+            </p>
+            <input
+              type="text"
+              placeholder={CONST_TEXT.USER_ID_PLACEHOLDER}
+              value={shareEmail}
+              onChange={(e) => setShareEmail(e.target.value)}
+              autoComplete="off"
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                marginBottom: "1rem",
+                border: "1px solid #e5e7eb",
+                borderRadius: "6px",
+                fontSize: "1rem",
+                boxSizing: "border-box",
+              }}
+            />
+            <div
+              style={{
+                display: "flex",
+                gap: "1rem",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                onClick={() => setShareModal(null)}
+                style={{
+                  padding: "0.5rem 1.5rem",
+                  background: "#e5e7eb",
+                  color: "#374151",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: "500",
+                }}
+              >
+                {CONST_TEXT.CANCEL}
+              </button>
+              <button
+                onClick={() => shareTask(shareModal.taskId)}
+                style={{
+                  padding: "0.5rem 1.5rem",
+                  background: "#8b5cf6",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: "500",
+                }}
+              >
+                {CONST_TEXT.SHARE}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideIn {
+          from {
+            transform: translateX(400px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </main>
   );
 }

@@ -9,32 +9,7 @@ export type Task = {
   completed: boolean;
 };
 
-const initialState: Task[] = [
-  {
-    id: 1,
-    title: "買い物",
-    category: "生活",
-    assignee: "A",
-    memo: "あれこれ買う",
-    completed: false,
-  },
-  {
-    id: 2,
-    title: "旅行計画",
-    category: "イベント",
-    assignee: "B",
-    memo: "あれこれ行く",
-    completed: true,
-  },
-  {
-    id: 3,
-    title: "掃除",
-    category: "生活",
-    assignee: "Aさん",
-    memo: "とにかく掃く",
-    completed: false,
-  },
-];
+const initialState: Task[] = [];
 
 const tasksSlice = createSlice({
   name: "tasks",

@@ -21,7 +21,7 @@ interface FirebaseTask {
 // PUT: タスク更新
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -47,23 +47,17 @@ export async function PUT(
 
     // タスクの所有者または共有ユーザーのみアクセス可能
     const isOwner = task.ownerId === userId;
-    const isShared = task.sharedWith && task.sharedWith[userId];
+    const isShared = !!task.sharedWith?.[userId];
 
     if (!isOwner && !isShared) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 所有者または共有ユーザーのみ全フィールド編集可能
-    let updatedTask: FirebaseTask;
-    if (isOwner || isShared) {
-      updatedTask = {
-        ...task,
-        ...body,
-        updatedAt: Date.now(),
-      };
-    } else {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const updatedTask: FirebaseTask = {
+      ...task,
+      ...body,
+      updatedAt: Date.now(),
+    };
 
     await update(taskRef, updatedTask);
 
@@ -80,7 +74,7 @@ export async function PUT(
 // DELETE: タスク削除
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
